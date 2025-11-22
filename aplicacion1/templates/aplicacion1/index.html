@@ -31,6 +31,10 @@
                     <i class="fas fa-camera me-2"></i>
                     Capturar
                 </button>
+                <button id="btnGuardarReporte" class="btn btn-warning">
+                    <i class="fas fa-save me-2"></i>
+                    Guardar Reporte
+                </button>
             </div>
 
             <div class="video-container" id="container_video">
@@ -249,8 +253,8 @@
                     
                     // Crear una nueva tarjeta de captura
                     const captureCard = `
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <div class="capture-card">
+                        <div class="col-12 col-md-6 col-lg-4 capture-item">
+                            <div class="capture-card" data-imagen="${videoFrame}" data-personas="${captureCount}">
                                 <img src="${videoFrame}" alt="Captura ${timestamp}">
                                 <div class="capture-info">
                                     <small>${timestamp}</small>
@@ -271,6 +275,87 @@
                     $('#capturasList').prepend(captureCard);
                     mostrarMensaje('Captura guardada correctamente', 'success');
                 }
+            });
+
+            // Manejar el botón de guardar reporte
+            $('#btnGuardarReporte').click(function() {
+                const btn = $(this);
+                btn.prop('disabled', true);
+                
+                // Recopilar todas las capturas
+                const capturas = [];
+                $('.capture-card').each(function() {
+                    const $card = $(this);
+                    const imagen = $card.attr('data-imagen');
+                    const personas = parseInt($card.attr('data-personas')) || 0;
+                    
+                    console.log('Procesando captura:', {imagen: imagen ? 'presente' : 'ausente', personas: personas});
+                    
+                    if (imagen) {
+                        capturas.push({
+                            imagen: imagen,
+                            personas: personas
+                        });
+                    }
+                });
+                
+                console.log(`Total de capturas recopiladas: ${capturas.length}`);
+                
+                // Verificar si hay capturas
+                if (capturas.length === 0) {
+                    mostrarMensaje('No hay capturas para guardar. Capture algunas imágenes primero.', 'info');
+                    btn.prop('disabled', false);
+                    return;
+                }
+                
+                // Obtener contador actual
+                const numeroPersonas = parseInt($('#currentCount span').text()) || 0;
+                
+                // Preparar datos del reporte
+                const reporteData = {
+                    laboratorio: 'Laboratorio Principal',
+                    numero_personas: numeroPersonas,
+                    observaciones: `Reporte generado con ${capturas.length} capturas`,
+                    capturas: capturas
+                };
+                
+                console.log('Datos a enviar:', reporteData);
+                
+                // Enviar al servidor
+                $.ajax({
+                    url: '/reporte/',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(reporteData),
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            mostrarMensaje(
+                                `Reporte guardado: ${response.capturas_guardadas} capturas almacenadas`,
+                                'success'
+                            );
+                            
+                            // Limpiar capturas después de guardar
+                            setTimeout(() => {
+                                if (confirm('¿Desea limpiar las capturas guardadas?')) {
+                                    $('#capturasList').empty();
+                                }
+                            }, 1000);
+                        } else {
+                            mostrarMensaje('Error al guardar: ' + response.mensaje, 'danger');
+                        }
+                    },
+                    error: function(xhr) {
+                        let mensaje = 'Error al guardar el reporte';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            mensaje = response.mensaje || mensaje;
+                        } catch(e) {}
+                        mostrarMensaje(mensaje, 'danger');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false);
+                    }
+                });
             });
         });
 

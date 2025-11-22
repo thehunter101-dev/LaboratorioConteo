@@ -27,7 +27,10 @@ urlpatterns = [
     path('detener/', views.detener, name='detener'),
     path('video_feed/', views.video_feed, name='video_feed'),
     path('estadisticas/', views.obtener_estadisticas, name='estadisticas'),
+    path("crear_lab/", views.crear_laboratorio, name="crear_lab"),
+    path("reporte/", views.guardar_reporte, name="reporte"),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
